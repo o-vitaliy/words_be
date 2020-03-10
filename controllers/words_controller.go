@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/orm"
 	"io/ioutil"
-	"math/rand"
 	"words/models"
 )
 
@@ -13,7 +13,7 @@ type WordsController struct {
 	beego.Controller
 }
 
-func (this *WordsController) Get() {
+func (this *WordsController) GetAll() []*models.Word {
 	data, err := ioutil.ReadFile("./sample_words.json")
 	if err != nil {
 		fmt.Print(err)
@@ -21,14 +21,20 @@ func (this *WordsController) Get() {
 
 	// json data
 	var obj []*models.Word
-	fmt.Println(string(data))
 	// unmarshall it
-	err = json.Unmarshal(data, &obj)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	r := rand.Intn(len(obj))
-	this.Data["json"] = obj[r]
+	_ = json.Unmarshal(data, &obj)
+	return obj
+}
+
+func (this *WordsController) Get() {
+	o := orm.NewOrm()
+	var tr models.Translation
+	_ = o.Raw(`
+SELECT * FROM translation
+ORDER BY RAND() LIMIT 1
+`).QueryRow(&tr)
+
+	this.Data["json"] = models.Word{Word: tr.En, Translation: tr.Ru}
 	this.ServeJSON()
 }
 func (this *WordsController) Post() {
